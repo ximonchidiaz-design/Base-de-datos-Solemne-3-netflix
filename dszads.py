@@ -2,9 +2,20 @@ import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 
+# =============================================================
+# 1. CARGA DEL DATASET
+# =============================================================
 df = pd.read_csv("netflix_titles.csv.csv")
 
-# Configuración de la página
+# Crear main_genre ANTES de cualquier filtrado
+df['main_genre'] = df['listed_in'].str.split(',').str[0]
+
+# Extraer año de date_added si existe
+df["year_added"] = pd.to_datetime(df["date_added"], errors="coerce").dt.year
+
+# =============================================================
+# CONFIGURACIÓN DE LA PÁGINA
+# =============================================================
 st.set_page_config(
     page_title="Análisis de Contenido de Netflix",
     layout="wide",
@@ -14,7 +25,9 @@ st.set_page_config(
 st.title('🎬 Análisis de Contenido de Netflix')
 st.markdown('Una aplicación interactiva de visualización de datos con **Streamlit**, **Pandas** y **Matplotlib**.')
 
-# --- SIDEBAR ---
+# =============================================================
+# SIDEBAR — FILTROS
+# =============================================================
 st.sidebar.header('⚙️ Opciones de Filtrado')
 
 content_type = st.sidebar.selectbox(
@@ -32,7 +45,9 @@ year_range = st.sidebar.slider(
     value=(min_year, max_year)
 )
 
+# Filtrado del dataframe
 df_filtered = df.copy()
+
 if content_type != 'Todos':
     df_filtered = df_filtered[df_filtered['type'] == content_type]
 
@@ -44,15 +59,16 @@ df_filtered = df_filtered[
 st.sidebar.markdown('---')
 st.sidebar.info(f'Mostrando **{len(df_filtered)}** títulos filtrados.')
 
-# =====================================================================
+# =============================================================
 # 2. VISUALIZACIONES
-# =====================================================================
+# =============================================================
 
 st.header('📊 Visualizaciones Clave del Dataset (Matplotlib)')
-
 col1, col2 = st.columns(2)
 
-# --- Gráfico 1 ---
+# -------------------------------------------------------------
+# 1) Distribución por tipo de contenido
+# -------------------------------------------------------------
 with col1:
     st.subheader('1. Distribución de Tipos de Contenido')
     type_counts = df_filtered['type'].value_counts()
@@ -71,29 +87,33 @@ with col1:
     ax_type.set_facecolor('#0E1117')
     st.pyplot(fig_type)
 
-# --- Gráfico 2 ---
+# -------------------------------------------------------------
+# 2) Top 10 géneros más populares
+# -------------------------------------------------------------
 with col2:
     st.subheader('2. Top 10 Géneros Populares')
-    df['main_genre'] = df['listed_in'].str.split(',').str[0]
+
     genre_counts = df_filtered['main_genre'].value_counts().head(10)
 
     fig_genre, ax_genre = plt.subplots(figsize=(6, 6))
     genre_counts.sort_values(ascending=True).plot(kind='barh', ax=ax_genre, color='#B20710')
+
     ax_genre.set_xlabel('Número de Títulos', color='white')
     ax_genre.set_ylabel('Género', color='white')
     ax_genre.tick_params(colors='white')
     fig_genre.patch.set_facecolor('#0E1117')
     ax_genre.set_facecolor('#0E1117')
+
     plt.tight_layout()
     st.pyplot(fig_genre)
 
-# --- Gráfico 3 ---
+# -------------------------------------------------------------
+# 3) Tendencia de contenido añadido por año
+# -------------------------------------------------------------
 st.markdown('---')
 st.subheader('3. Tendencia de Contenido Añadido a Netflix por Año')
 
-df_trend = df.groupby('year_added').size().reset_index(name='count')
-df_trend = df_trend.dropna(subset=['year_added'])
-df_trend['year_added'] = df_trend['year_added'].astype(int)
+df_trend = df.dropna(subset=['year_added']).groupby('year_added').size().reset_index(name='count')
 
 fig_trend, ax_trend = plt.subplots(figsize=(12, 5))
 ax_trend.plot(df_trend['year_added'], df_trend['count'], marker='o', color='#E50914', linewidth=2)
@@ -112,12 +132,15 @@ plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
 st.pyplot(fig_trend)
 
-# --- Datos filtrados ---
+# =============================================================
+# Datos filtrados
+# =============================================================
 st.markdown('---')
 st.subheader('📋 Vista de Datos Filtrados')
+
 st.dataframe(df_filtered[['title', 'type', 'country', 'release_year', 'main_genre', 'rating']].head(20))
 
-# --- Resumen ---
+# Sidebar final
 st.sidebar.markdown('---')
 st.sidebar.caption('Proyecto desarrollado con:')
 st.sidebar.markdown('- **Streamlit**')
