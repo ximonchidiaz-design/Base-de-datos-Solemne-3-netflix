@@ -74,6 +74,7 @@ with col1:
 # --- Gráfico 2 ---
 with col2:
     st.subheader('2. Top 10 Géneros Populares')
+    df['main_genre'] = df['listed_in'].str.split(',').str[0]
     genre_counts = df_filtered['main_genre'].value_counts().head(10)
 
     fig_genre, ax_genre = plt.subplots(figsize=(6, 6))
